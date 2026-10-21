@@ -131,8 +131,22 @@ fileprivate var _isLiteVersion = isLiteVersion.boolValue
 /// A boolean indicating whether changes to UserDefaults for unlocking extra content are allowed.
 public var changingUserDefaultsInAppPurchasesValues = false
 
+#if PYTO_OPEN_SOURCE
+/// Enables all locally implemented features for the open-source build.
+/// This mode does not create or validate an App Store receipt.
+func initializeOpenSourceFullFeatureMode() {
+    changingUserDefaultsInAppPurchasesValues = true
+    isPurchased.boolValue = true
+    changingUserDefaultsInAppPurchasesValues = true
+    isLiteVersion.boolValue = false
+    isUnlocked = true
+    isReceiptChecked = true
+}
+#endif
+
 /// Adds a notification observer that checks if a change in UserDefaults for unlocking extra content is made without allowing it with a Swift variable.
 func observeUserDefaults() {
+#if !PYTO_OPEN_SOURCE
     NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: nil) { (_) in
         
         guard !changingUserDefaultsInAppPurchasesValues else {
@@ -151,6 +165,7 @@ func observeUserDefaults() {
             fatalError("Detected unallowed change on UserDefaults related to In App Purchases.")
         }
     }
+#endif
 }
 
 /// Completes purchase for the given product id.
@@ -293,6 +308,10 @@ func showOnboarding(window: UIWindow?, isTrialExpired: Bool = false) {
 /// - Parameters:
 ///     - window: The window where an onboarding screen should be presented if the app is locked. If `nil`, nothing will be presented.
 func checkIfUnlocked(on window: UIWindow?) {
+#if PYTO_OPEN_SOURCE
+    initializeOpenSourceFullFeatureMode()
+    return
+#else
     guard let validator = ReceiptValidator(), let version = validator.receipt[.originalAppVersion] as? String else {
         if #available(iOS 13.0.0, *) {
             Pyto.showOnboarding(window: window)
@@ -356,4 +375,5 @@ func checkIfUnlocked(on window: UIWindow?) {
         
         isReceiptChecked = true
     }
+#endif
 }

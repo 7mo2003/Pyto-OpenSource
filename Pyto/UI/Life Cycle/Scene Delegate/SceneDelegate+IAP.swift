@@ -15,6 +15,10 @@ extension SceneDelegate: SKRequestDelegate {
     
     /// Verifies the receipt and shows the onboarding screen if needed.
     func verifyReceipt() {
+#if PYTO_OPEN_SOURCE
+        initializeOpenSourceFullFeatureMode()
+        return
+#else
         if let receiptUrl = Bundle.main.appStoreReceiptURL, let _ = try? Data(contentsOf: receiptUrl) {
              showOnboarding()
         } else {
@@ -32,6 +36,7 @@ extension SceneDelegate: SKRequestDelegate {
                 }
             }
         }
+#endif
     }
     
     // MARK: - Request delegate
