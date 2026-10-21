@@ -24,8 +24,7 @@ python3 -m pip install 'setuptools<60' 'Cython<3'
 python3 -m pip install 'numpy<1.24'
 python3 -m pip install jinja2
 python3 -m pip install wheel
-python3 -m pip install sphinx
-python3 -m pip install sphinx-rtd-theme
+python3 -m pip install 'sphinx<6' 'sphinx-rtd-theme<2' Pillow
 python3 -m pip install pbxproj
 brew install zlib
 
@@ -115,11 +114,11 @@ unzip -o Python.zip
 rm Python.zip
 cd ../
 
+# Build package metadata and native modules before documentation reads them.
+cd site-packages
+./install.sh
+cd ../
+
 cd docs
 make html
 cd ../
-
-# Dependencies
-
-cd site-packages
-./install.sh
