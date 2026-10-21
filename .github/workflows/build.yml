@@ -1,21 +1,61 @@
-# https://docs.github.com/en/actions/use-cases-and-examples/deploying/installing-an-apple-certificate-on-macos-runners-for-xcode-development
+name: Build open-source iOS IPA
 
-name: build
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
-  pull_request:
+    branches: [main]
+    paths-ignore: ['**.md']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pyto-ios-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15-intel
+    timeout-minutes: 180
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
-          allow-prereleases: true
-      - run: pip install --upgrade pip
-      - run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
-      - run: ./setup.sh
-      - run: xcodebuild -workspace Pyto.xcworkspace -scheme Pyto -configuration Release
+          python-version: '3.10'
+      - name: Record toolchain and install CocoaPods
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-local
+          xcodebuild -version | tee build-local/toolchain.log
+          xcrun --sdk iphoneos --show-sdk-path | tee -a build-local/toolchain.log
+          python3.10 --version | tee -a build-local/toolchain.log
+          command -v pod || brew install cocoapods
+          pod --version | tee -a build-local/toolchain.log
+      - name: Prepare original dependencies
+        shell: bash
+        run: bash build-ios.sh prepare
+      - name: Build full-feature open-source edition and package unsigned IPA
+        shell: bash
+        run: bash build-ios.sh build
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pyto-OpenSource-unsigned
+          path: build-local/Pyto-source-build-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve diagnostic logs even if the build fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics
+          path: |
+            setup-build.log
+            build-local/*.log
+            build-local/*.txt
+          if-no-files-found: warn
+          retention-days: 14
