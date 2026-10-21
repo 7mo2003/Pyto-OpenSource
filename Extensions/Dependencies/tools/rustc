@@ -1,30 +1,21 @@
 #!/usr/bin/env python3
-
+"""Preserve Cargo probes while emitting static iOS extension libraries."""
 import os.path
 import subprocess
 import sys
 
 rustc = os.path.expanduser("~/.cargo/bin/rustc")
-
+original = sys.argv[1:]
+# Cargo expects one output filename per requested crate type during probes.
+# Changing cdylib to staticlib there breaks current Cargo's target detection.
+is_probe = any(arg == "--print" or arg.startswith("--print=") for arg in original)
 args = []
-sys.argv.pop(0)
-for arg in sys.argv:
-    if arg == "cdylib":
-        arg = "staticlib"
-        args.append(arg)
-        args += ["--target", "aarch64-apple-ios"]
-    else:
-        args.append(arg)
-
-#try:
-#    args.remove("--crate-type")
-#    args.remove("lib")
-#except ValueError:
-#    pass
-
-cmd = [rustc]+args
+for arg in original:
+    args.append("staticlib" if arg == "cdylib" and not is_probe else arg)
+if not is_probe and "cdylib" in original and not any(
+    arg == "--target" or arg.startswith("--target=") for arg in original
+):
+    args += ["--target", "aarch64-apple-ios"]
+cmd = [rustc] + args
 print(cmd, file=sys.stderr)
-
-subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr)
-
-sys.exit(0)
+sys.exit(subprocess.run(cmd).returncode)

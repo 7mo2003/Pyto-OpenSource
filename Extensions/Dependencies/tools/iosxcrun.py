@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-import shlex
-import os
 import subprocess
 import numpy as np
 
@@ -50,5 +48,5 @@ if is_just_c_not_cpp:
 else:
     new_args.append("-std=gnu++11")
 
-command = shlex.join(new_args)
-sys.exit(os.system(command))
+new_args.append("-Wno-error=incompatible-function-pointer-types")
+sys.exit(subprocess.run(new_args).returncode)

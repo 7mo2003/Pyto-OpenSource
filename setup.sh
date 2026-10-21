@@ -29,7 +29,7 @@ python3 -m pip install jinja2
 python3 -m pip install wheel
 python3 -m pip install 'sphinx<6' 'sphinx-rtd-theme<2' Pillow
 python3 -m pip install pbxproj
-brew install zlib
+brew install zlib autoconf automake libtool
 
 # Python
 

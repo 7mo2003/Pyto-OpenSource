@@ -1,26 +1,16 @@
 #!/usr/bin/env python3
-
+"""Wrapper for the historical iOS static-extension build."""
 import os.path
 import subprocess
 import sys
 
 cargo = os.path.expanduser("~/.cargo/bin/cargo")
-
-args = []
-sys.argv.pop(0)
-for arg in sys.argv:
-
-    if arg == "cdylib":
-        arg = "staticlib"    
-
-    args.append(arg)
-
-    if arg == "rustc":
-        args += ["--target", "aarch64-apple-ios"]
-
-cmd = [cargo]+args
+original = sys.argv[1:]
+args = ["staticlib" if arg == "cdylib" else arg for arg in original]
+if args and args[0] == "rustc" and not any(
+    arg == "--target" or arg.startswith("--target=") for arg in original
+):
+    args[1:1] = ["--target", "aarch64-apple-ios"]
+cmd = [cargo] + args
 print(cmd, file=sys.stderr)
-
-subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr)
-
-sys.exit(0)
+sys.exit(subprocess.run(cmd).returncode)
