@@ -2,7 +2,7 @@
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-pip install wheel
+python3 -m pip install wheel 'cppy==1.1.0'
 
 source environment.sh
 
