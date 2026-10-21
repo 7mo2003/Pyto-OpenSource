@@ -15,6 +15,9 @@ xcrun --sdk iphoneos --show-sdk-path >/dev/null || exit 2
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 cd "$DIR"
 
+# Keep nested pip installs from silently upgrading the historical toolchain.
+export PIP_CONSTRAINT="$DIR/build-constraints.txt"
+
 # Restore pinned source dependencies before any dependency-specific directory work.
 git submodule update --init --recursive
 # Treat HTTP errors as download failures instead of unpacking error pages.
