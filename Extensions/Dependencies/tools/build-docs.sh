@@ -3,7 +3,7 @@
 cd "$(dirname "${BASH_SOURCE[0]}")"
 cd ../
 
-python3 -m pip install sphinx python-docs-theme sphinx_copybutton sphinx_issues sphinx_removed_in sphinxext-opengraph sphinx-tabs sphinx-gallery sphinx-prompt sphinx-material sphinx-panels sphinxcontrib-svg2pdfconverter sphinxcontrib-log-cabinet nbsphinx pydata-sphinx-theme crate sphinx-csv-filter pallets-sphinx-themes colorspacious cppy numpydoc matplotlib pandas seaborn tornado gevent nbconvert pandoc gitpython jupyter plotly myst-parser pooch dask travertino mock furo pyOpenSSL pysocks > /dev/null
+python3 -m pip install 'sphinx<6' 'sphinx-rtd-theme<2' python-docs-theme sphinx_copybutton sphinx_issues sphinx_removed_in sphinxext-opengraph sphinx-tabs sphinx-gallery sphinx-prompt sphinx-material sphinx-panels sphinxcontrib-svg2pdfconverter sphinxcontrib-log-cabinet nbsphinx pydata-sphinx-theme crate sphinx-csv-filter pallets-sphinx-themes colorspacious cppy numpydoc matplotlib pandas seaborn tornado gevent nbconvert pandoc gitpython jupyter plotly myst-parser pooch dask travertino mock furo pyOpenSSL pysocks > /dev/null
 
 function pillow {
     pushd Pillow/docs
@@ -52,7 +52,7 @@ function pywt {
 
 function sklearn {
     pushd sklearn/doc
-    python3 -m pip install scikit-learn==0.19 > /dev/null
+    python3 -m pip install scikit-learn==1.1.3 > /dev/null
     make html
     rm -rf ../../../../documentations/sklearn
     cp -r _build/html/stable ../../../../documentations/sklearn

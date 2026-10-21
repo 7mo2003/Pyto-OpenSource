@@ -1,21 +1,17 @@
 #!/bin/bash
-
+set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 echo "build-numpy.sh"
-echo
-sh build-numpy.sh
+bash build-numpy.sh
 
 for f in build-*.sh; do
-
-if [ $f != "build-numpy.sh" ]; then
-
-echo $f
-echo
-sh $f
-
-fi
-
+    case "$f" in
+        build-numpy.sh|build-docs.sh) continue ;;
+    esac
+    echo "$f"
+    bash "$f"
 done
 
-sh build-docs.sh
+# Build bundled third-party documentation once, after all native modules.
+bash build-docs.sh
