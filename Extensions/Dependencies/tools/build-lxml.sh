@@ -25,7 +25,19 @@ export CPPFLAGS="-arch arm64 -isysroot ${SDKROOT} -I${PREFIX}/include"
 export CFLAGS="-arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_MIN} -fPIC"
 export LDFLAGS="-arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_MIN} -L${PREFIX}/lib"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig"
 export PATH="${PREFIX}/bin:${PATH}"
+
+# Homebrew prefixes GNU libtool commands to distinguish Apple's /usr/bin/libtool.
+# autogen.sh calls libtoolize literally, so provide local aliases, not global changes.
+GNU_TOOLS="${TOOLS_DIR}/.gnu-tools"
+mkdir -p "${GNU_TOOLS}"
+ln -sf "$(command -v glibtoolize)" "${GNU_TOOLS}/libtoolize"
+ln -sf "$(command -v glibtool)" "${GNU_TOOLS}/libtool"
+export PATH="${GNU_TOOLS}:${PATH}"
+export LIBTOOLIZE="${GNU_TOOLS}/libtoolize"
+export ACLOCAL_PATH="$(brew --prefix libtool)/share/aclocal:$(brew --prefix)/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
+command -v pkg-config >/dev/null || brew install pkg-config
 
 command -v autoconf >/dev/null || { echo "autoconf is required to build pinned libxml2/libxslt" >&2; exit 1; }
 command -v automake >/dev/null || { echo "automake is required to build pinned libxml2/libxslt" >&2; exit 1; }
@@ -38,11 +50,11 @@ cd "${LIBXML2_DIR}"
 if [[ -x ./autogen.sh ]]; then
   ./autogen.sh --build=x86_64-apple-darwin --host=arm-apple-darwin \
     --prefix="${PREFIX}" --disable-dependency-tracking --disable-shared \
-    --enable-static --without-python --without-lzma --without-iconv
+    --enable-static --without-python
 else
   ./configure --build=x86_64-apple-darwin --host=arm-apple-darwin \
     --prefix="${PREFIX}" --disable-dependency-tracking --disable-shared \
-    --enable-static --without-python --without-lzma --without-iconv
+    --enable-static --without-python
 fi
 make -j2
 make install
