@@ -52,6 +52,13 @@ jobs:
           PYTO_PREPARE_BASE_ONLY: '1'
         shell: bash
         run: bash build-ios.sh prepare
+      - name: Check target Python ABI and Xcode project tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun nm -gU python3_ios/Python3_ios/libPython3.10.a | grep -E '[[:space:]]T __PyUnicode_DecodeUnicodeEscape$' >/dev/null
+          ruby -r xcodeproj -e 'puts Xcodeproj::VERSION' || gem install --user-install --no-document xcodeproj -v 1.27.0
+          ruby -c .github/sync-native-frameworks.rb
       - name: Identify native cache toolchain
         id: native-key
         shell: bash
@@ -128,6 +135,9 @@ jobs:
       - name: Validate native device frameworks
         shell: bash
         run: python3 .github/validate-native.py | tee build-local/native-validation.log
+      - name: Synchronize Xcode references with generated frameworks
+        shell: bash
+        run: ruby .github/sync-native-frameworks.rb | tee build-local/framework-sync.log
       - name: Save compiled iOS dependencies before documentation and Xcode
         if: steps.native-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

@@ -15,6 +15,9 @@ for script in tools.glob('build-*.sh'):
             groups.add(match[1])
 if len(groups) < 20:
     raise SystemExit('Unable to discover the expected native framework groups')
+for required in ('typed_ast-_ast27.framework', 'typed_ast-_ast3.framework'):
+    if not (root / 'Extensions' / 'TypedAST' / required).is_dir():
+        raise SystemExit('Missing required TypedAST parser: ' + required)
 count = 0
 for group in sorted(groups):
     frameworks = sorted((root / 'Extensions' / group).glob('*.framework'))
