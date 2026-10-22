@@ -15,7 +15,7 @@ target 'Pyto' do
   inhibit_all_warnings!
 
   pod 'SplitKit', :git => 'https://github.com/ColdGrub1384/SplitKit.git', :commit => 'd47136150c5a5c16dc357f4ad24625925684216e'
-  pod 'SourceEditor', :git => 'https://github.com/ColdGrub1384/source-editor.git', :commit => 'b15ce2f686812c38dfeaff10dbf4cb7c3c229aa4'
+  pod 'SourceEditor', :git => 'https://github.com/ColdGrub1384/source-editor.git', :commit => '66812125b988d6593d601df53e472073776e7809'
   pod 'Zip'
   pod 'Down', :git => 'https://github.com/ColdGrub1384/Down.git'
   pod 'FileBrowser', :git => 'https://github.com/ColdGrub1384/FileBrowser.git'
@@ -56,7 +56,7 @@ target 'Pyto Screenshots' do
   inhibit_all_warnings!
 
   pod 'SplitKit', :git => 'https://github.com/ColdGrub1384/SplitKit.git', :commit => 'd47136150c5a5c16dc357f4ad24625925684216e'
-  pod 'SourceEditor', :git => 'https://github.com/ColdGrub1384/source-editor.git', :commit => 'b15ce2f686812c38dfeaff10dbf4cb7c3c229aa4'
+  pod 'SourceEditor', :git => 'https://github.com/ColdGrub1384/source-editor.git', :commit => '66812125b988d6593d601df53e472073776e7809'
   pod 'Zip'
   pod 'Down', :git => 'https://github.com/ColdGrub1384/Down.git'
   pod 'FileBrowser', :git => 'https://github.com/ColdGrub1384/FileBrowser.git'
