@@ -90,6 +90,11 @@ for arg in sys_args:
     if arg == "-fallow-argument-mismatch":
         continue
 
+    # Flang's debug metadata is newer than the bundled llc reader. Release
+    # objects do not need it; retain numerical code and optimization flags.
+    if arg == "-g" or arg.startswith(("-ggdb", "-gdwarf")):
+        continue
+
     # Classic Flang bundled by fortran-ios v2.3 uses the PGI spelling.
     # Passing gfortran's spelling through reaches clang and is rejected.
     if arg == "-ffixed-form":
@@ -131,7 +136,7 @@ os.chdir(inbox)
 flang = os.path.abspath(os.path.join(dir, "flang.sh"))
 # Only LLVM IR is needed; bundled macOS llc produces the iOS object.
 # --save-temps also invokes the container's host clang backend unnecessarily.
-flang_result = subprocess.run([flang, "-S", "-emit-llvm"] + arguments)
+flang_result = subprocess.run([flang, "-S", "-emit-llvm"] + arguments + ["-g0"])
 file_path = None
 
 for file in os.listdir("."):

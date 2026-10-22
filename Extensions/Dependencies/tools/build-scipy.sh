@@ -104,6 +104,7 @@ grep -Eq 'LC_VERSION_MIN_IPHONEOS|platform[[:space:]]+2([[:space:]]|$)' "$prefli
 
 cd ../scipy
 
+python3 ../tools/patch-scipy-c99.py scipy/_lib/_c99compat.h
 rm -f scipy/ndimage/src/ni_morphology.c
 cp ../tools/ni_morphology.c scipy/ndimage/src/
 
