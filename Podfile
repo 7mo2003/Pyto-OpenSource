@@ -14,8 +14,8 @@ target 'Pyto' do
 
   inhibit_all_warnings!
 
-  pod 'SplitKit', :git => 'https://github.com/ColdGrub1384/SplitKit.git'
-  pod 'SourceEditor', :git => 'https://github.com/ColdGrub1384/source-editor.git'
+  pod 'SplitKit', :git => 'https://github.com/ColdGrub1384/SplitKit.git', :commit => 'd47136150c5a5c16dc357f4ad24625925684216e'
+  pod 'SourceEditor', :git => 'https://github.com/ColdGrub1384/source-editor.git', :commit => 'b15ce2f686812c38dfeaff10dbf4cb7c3c229aa4'
   pod 'Zip'
   pod 'Down', :git => 'https://github.com/ColdGrub1384/Down.git'
   pod 'FileBrowser', :git => 'https://github.com/ColdGrub1384/FileBrowser.git'
@@ -55,8 +55,8 @@ target 'Pyto Screenshots' do
 
   inhibit_all_warnings!
 
-  pod 'SplitKit', :git => 'https://github.com/ColdGrub1384/SplitKit.git'
-  pod 'SourceEditor', :git => 'https://github.com/ColdGrub1384/source-editor.git'
+  pod 'SplitKit', :git => 'https://github.com/ColdGrub1384/SplitKit.git', :commit => 'd47136150c5a5c16dc357f4ad24625925684216e'
+  pod 'SourceEditor', :git => 'https://github.com/ColdGrub1384/source-editor.git', :commit => 'b15ce2f686812c38dfeaff10dbf4cb7c3c229aa4'
   pod 'Zip'
   pod 'Down', :git => 'https://github.com/ColdGrub1384/Down.git'
   pod 'FileBrowser', :git => 'https://github.com/ColdGrub1384/FileBrowser.git'
@@ -71,6 +71,21 @@ end
 
 # post install
 post_install do |installer|
+    # Keep the pinned SplitKit behavior, including pointer interactions. Expose
+    # only the two real layout constraints that Pyto's console/editor controls.
+    split_sources = Dir.glob(File.join(__dir__, 'Pods', 'SplitKit', '**', '*.swift'))
+    %w[firstViewHeightConstraint firstViewHeightRatioConstraint].each do |name|
+        declaration = /\bprivate(\s+var\s+#{Regexp.escape(name)}\b)/
+        split_sources.each do |path|
+            original = File.read(path)
+            updated = original.gsub(declaration, 'public\1')
+            next if updated == original
+            File.chmod(File.stat(path).mode | 0200, path)
+            File.write(path, updated)
+        end
+        exposed = split_sources.any? { |path| File.read(path).match?(/\bpublic\s+var\s+#{Regexp.escape(name)}\b/) }
+        raise "SplitKit API compatibility patch failed: #{name}" unless exposed
+    end
     # Build settings
     installer.pods_project.targets.each do |target|
         target.build_configurations.each do |config|
