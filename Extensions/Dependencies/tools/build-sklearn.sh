@@ -1,7 +1,12 @@
 #!/bin/bash
+set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+# setup.py imports SciPy on the build host to validate its version. Target
+# frameworks cannot satisfy that import; require a host wheel before exporting
+# the iOS cross-compilation environment, without adding it to the app payload.
+python3 -m pip install --only-binary=:all: 'scipy==1.7.3'
 source environment.sh
 
 export PYTHON_CROSSENV=1
