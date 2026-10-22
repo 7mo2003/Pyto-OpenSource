@@ -52,6 +52,24 @@ jobs:
           PYTO_PREPARE_BASE_ONLY: '1'
         shell: bash
         run: bash build-ios.sh prepare
+      - name: Validate host SciPy tooling and its OpenMP runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .venv-build/bin/activate
+          export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
+          brew list gcc@14 >/dev/null 2>&1 || brew install gcc@14
+          GOMP="$(find "$(brew --prefix gcc@14)/lib" -name libgomp.dylib -type f -print -quit)"
+          # Some Homebrew versions expose this library through a symlink.
+          if [[ -z "$GOMP" ]]; then
+            GOMP="$(find "$(brew --prefix gcc@14)/lib" -name libgomp.dylib -print -quit)"
+          fi
+          [[ -f "$GOMP" ]] || { echo 'Missing host libgomp.dylib' >&2; exit 2; }
+          export LD_LIBRARY_PATH="$(dirname "$GOMP")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+          # This is a host Python import path, never an iOS linker search path.
+          python3 -m pip install 'pybind11==2.7.1' 'pythran==0.9.12'
+          python3 Extensions/Dependencies/tools/check-scipy-build-ext.py
       - name: Build and validate native XML before starting the Fortran VM
         shell: bash
         run: |
