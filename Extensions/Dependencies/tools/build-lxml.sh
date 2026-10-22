@@ -72,6 +72,11 @@ for name in ("configure", "configure.in"):
     if path.exists():
         text = path.read_bytes()
         path.write_bytes(text.replace(b"--libs print", b"--libs"))
+# The fork's header template added profiler support but its old configure
+# never substitutes WITH_PROFILER. Match the shipped xsltconfig.h: enabled.
+path = Path("libxslt/xsltconfig.h.in")
+text = path.read_bytes()
+path.write_bytes(text.replace(b"#if @WITH_PROFILER@", b"#if 1"))
 PY
 if [[ ! -x ./configure ]]; then
   autoreconf -fi
