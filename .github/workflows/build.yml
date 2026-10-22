@@ -54,6 +54,15 @@ jobs:
           PYTO_PREPARE_BASE_ONLY: '1'
         shell: bash
         run: bash build-ios.sh prepare
+      - name: Restore official pinned SSH command framework
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/ssh_cmd.xcframework.zip"
+          curl --fail --location --retry 3 https://github.com/holzschu/ios_system/releases/download/v3.0.0/ssh_cmd.xcframework.zip -o "$ARCHIVE"
+          echo "9b57b07d4e552f30f7127843860defe4e8edbad8c0b5f2e4c7e99399713b87e6  $ARCHIVE" | shasum -a 256 -c -
+          unzip -q -o "$ARCHIVE" -d Extensions/Dependencies/ios_system
+          test -f Extensions/Dependencies/ios_system/ssh_cmd.xcframework/Info.plist
       - name: Check target Python ABI and Xcode project tooling
         shell: bash
         run: |
