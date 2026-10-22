@@ -47,6 +47,18 @@ jobs:
           python3.10 --version | tee -a build-local/toolchain.log
           command -v pod || brew install cocoapods
           pod --version | tee -a build-local/toolchain.log
+      - name: Prepare pinned sources, pods and Python packages
+        env:
+          PYTO_PREPARE_BASE_ONLY: '1'
+        shell: bash
+        run: bash build-ios.sh prepare
+      - name: Build and validate native XML before starting the Fortran VM
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .venv-build/bin/activate
+          export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
+          bash Extensions/Dependencies/tools/build-lxml.sh 2>&1 | tee build-local/xml-build.log
       - name: Start Docker for the historical iOS Fortran compiler
         uses: douglascamata/setup-docker-macos-action@d5ccc6aae0ce23e7700154f5e63cc53e6433ac48 # v1.1.0
         with:
@@ -59,9 +71,17 @@ jobs:
           set -euo pipefail
           docker info | tee build-local/docker.log
           docker run --rm -v "$GITHUB_WORKSPACE:/source:ro" alpine:3.22 test -f /source/setup.sh
-      - name: Prepare original dependencies
+      - name: Build remaining native dependencies and documentation
         shell: bash
-        run: bash build-ios.sh prepare
+        run: |
+          set -euo pipefail
+          source .venv-build/bin/activate
+          export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
+          export PYTO_XML_READY=1
+          bash Extensions/Dependencies/tools/build.sh 2>&1 | tee build-local/native-build.log
+          bash Extensions/Dependencies/tools/copy-eggs.sh
+          find site-packages -name '*.so' -delete
+          make -C docs html 2>&1 | tee build-local/docs-build.log
       - name: Build full-feature open-source edition and package unsigned IPA
         shell: bash
         run: bash build-ios.sh build

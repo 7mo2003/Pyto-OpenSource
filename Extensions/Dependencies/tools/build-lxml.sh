@@ -64,6 +64,15 @@ make install
 # libxml2 headers and archive rather than host XML libraries.
 cd "${LIBXSLT_DIR}"
 "${TOOLS_DIR}/patch-libxslt-libxml2.sh" libxslt/functions.c
+python3 - <<'PY'
+from pathlib import Path
+# Old libxslt probes with an undocumented extra argument rejected by xml2-config.
+for name in ("configure", "configure.in"):
+    path = Path(name)
+    if path.exists():
+        text = path.read_text()
+        path.write_text(text.replace("--libs print", "--libs"))
+PY
 if [[ ! -x ./configure ]]; then
   autoreconf -fi
 fi

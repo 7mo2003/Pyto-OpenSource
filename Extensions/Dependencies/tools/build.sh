@@ -3,8 +3,15 @@ set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 # XML does not need generated target NumPy headers. Fail early on its toolchain.
-echo "build-lxml.sh"
-bash build-lxml.sh
+if [[ "${PYTO_XML_READY:-0}" == 1 ]]; then
+    [[ -f ../../Lxml/lxml-etree.framework/Info.plist && -f ../../Lxml/dependencies/lxml-deps.framework/Info.plist ]] || {
+        echo 'The separate XML stage has not produced the required frameworks' >&2
+        exit 1
+    }
+else
+    echo "build-lxml.sh"
+    bash build-lxml.sh
+fi
 
 echo "build-numpy.sh"
 bash build-numpy.sh

@@ -122,6 +122,8 @@ cd site-packages
 ./install.sh
 cd ../
 
-cd docs
-make html
-cd ../
+if [[ "${PYTO_PREPARE_BASE_ONLY:-0}" != 1 ]]; then
+    cd docs
+    make html
+    cd ../
+fi
