@@ -5,8 +5,10 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 source environment.sh
 
-python3 -m pip install pybind11
-python3 -m pip install pythran
+python3 -m pip install 'pybind11==2.7.1' 'pythran==0.9.12'
+# Run in a separate interpreter: SciPy requires Pythran to be unimported when
+# its setup.py patches distutils' base class for the Fortran-aware build.
+python3 check-scipy-build-ext.py
 
 export LDFLAGS="$LDFLAGS -L$(pwd) -L$(pwd)/../numpy/build/temp.iphoneos-arm64-3.10"
 
