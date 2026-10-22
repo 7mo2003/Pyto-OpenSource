@@ -3,9 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+python3 -m pip install 'Cython==0.29.37'
 source environment.sh
-
-python3 -m pip install Cython==3.0.0a9 # Fails on a10
 
 SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
 CC="$(xcrun --sdk iphoneos -f clang)"

@@ -59,6 +59,13 @@ jobs:
           source .venv-build/bin/activate
           export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
           bash Extensions/Dependencies/tools/build-lxml.sh 2>&1 | tee build-local/xml-build.log
+      - name: Build and validate native YAML before starting the Fortran VM
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .venv-build/bin/activate
+          export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
+          bash Extensions/Dependencies/tools/build-pyyaml.sh 2>&1 | tee build-local/yaml-build.log
       - name: Start Docker for the historical iOS Fortran compiler
         shell: bash
         run: bash .github/setup-docker-fortran.sh 2>&1 | tee build-local/docker-setup.log
@@ -75,6 +82,7 @@ jobs:
           source .venv-build/bin/activate
           export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
           export PYTO_XML_READY=1
+          export PYTO_YAML_READY=1
           bash Extensions/Dependencies/tools/build.sh 2>&1 | tee build-local/native-build.log
           bash Extensions/Dependencies/tools/copy-eggs.sh
           find site-packages -name '*.so' -delete

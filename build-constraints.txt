@@ -1,8 +1,8 @@
 # Host tooling for the historical Python 3.10 / setup.py cross-build.
 # PIP_CONSTRAINT propagates these bounds to dependency scripts.
 setuptools<60
-# PyYAML explicitly requests 3.0.0a9; other initial installs use Cython<3.
-Cython<3.0.0a10
+# Stable host generator for PyYAML 6, Gensim and the historical scientific stack.
+Cython==0.29.37
 numpy<1.24
 extension-helpers<1
 setuptools-scm<7
