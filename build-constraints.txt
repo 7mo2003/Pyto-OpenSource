@@ -7,6 +7,10 @@ numpy<1.24
 # SciPy's pinned maintenance source requires the pre-setuptools Pythran base.
 pythran==0.9.12
 pybind11==2.7.1
+# Later AST packages add a gast.pattern module and MatchStar dependencies
+# incompatible with Pythran 0.9.12's pattern discovery and older gast nodes.
+gast==0.5.2
+beniget==0.4.1
 extension-helpers<1
 setuptools-scm<7
 # Kiwisolver 1.3.2 uses cppy>=1.1; newer cppy requires modern setuptools.

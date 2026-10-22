@@ -18,3 +18,13 @@ if not issubclass(PythranBuildExt, numpy_build_ext):
 print("SciPy Pythran/NumPy build_ext compatibility verified:")
 for base in PythranBuildExt.__mro__:
     print(f"  {base.__module__}.{base.__name__}")
+
+# Import checks alone miss incompatibilities in Pythran's AST optimizations.
+from pythran.toolchain import generate_cxx
+generated = generate_cxx(
+    "pyto_build_probe", "def square(x):\n    return x * x\n",
+    {"square": ((float,),)},
+)
+if not generated:
+    raise RuntimeError("Pythran did not generate the expected C++ probe")
+print("SciPy Pythran AST optimization and C++ generation verified")
