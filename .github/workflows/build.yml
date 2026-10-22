@@ -63,6 +63,9 @@ jobs:
           echo "9b57b07d4e552f30f7127843860defe4e8edbad8c0b5f2e4c7e99399713b87e6  $ARCHIVE" | shasum -a 256 -c -
           unzip -q -o "$ARCHIVE" -d Extensions/Dependencies/ios_system
           test -f Extensions/Dependencies/ios_system/ssh_cmd.xcframework/Info.plist
+      - name: Restore official ios_system and LLVM 14 frameworks with published checksums
+        shell: bash
+        run: python3.10 .github/restore-llvm.py | tee build-local/llvm-frameworks.log
       - name: Check target Python ABI and Xcode project tooling
         shell: bash
         run: |
