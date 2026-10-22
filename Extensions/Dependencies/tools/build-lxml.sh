@@ -70,8 +70,8 @@ from pathlib import Path
 for name in ("configure", "configure.in"):
     path = Path(name)
     if path.exists():
-        text = path.read_text()
-        path.write_text(text.replace("--libs print", "--libs"))
+        text = path.read_bytes()
+        path.write_bytes(text.replace(b"--libs print", b"--libs"))
 PY
 if [[ ! -x ./configure ]]; then
   autoreconf -fi
