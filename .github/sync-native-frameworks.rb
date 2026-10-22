@@ -125,6 +125,26 @@ project.objects.grep(Xcodeproj::Project::Object::PBXGroup).each do |group|
   synced << "#{group.hierarchy_path} (#{expected_paths.length} frameworks)"
 end
 
+# The pinned NumPy source links quicksort/mergesort objects directly into
+# _multiarray_umath. It no longer emits the historical separate libnpysort.a.
+# Remove only that obsolete reference, and only after verifying sorting code
+# is present in the actual generated binary. Keep libnpymath.a unchanged.
+unless EXTENSIONS_ROOT.join("NumPy/libnpysort.a").file?
+  binaries = Dir.glob(EXTENSIONS_ROOT.join("NumPy/numpy-core-_multiarray_umath.framework/*.so").to_s)
+  abort "Cannot verify NumPy sorting implementation" unless binaries.length == 1
+  symbols = IO.popen(["xcrun", "nm", binaries.first], &:read)
+  abort "NumPy sorting symbols are missing" unless $?.success? && symbols.match?(/quicksort|mergesort|timsort/)
+  project.objects.grep(Xcodeproj::Project::Object::PBXFileReference).each do |ref|
+    next unless ref.path == "libnpysort.a" && Pathname.new(ref.real_path.to_s).cleanpath == EXTENSIONS_ROOT.join("NumPy/libnpysort.a")
+    phase_for_file_ref(project, ref).each do |phase, build_file|
+      phase.files.delete(build_file)
+      build_file.remove_from_project
+    end
+    ref.remove_from_project
+  end
+  puts "Verified NumPy sorting code in _multiarray_umath; removed obsolete libnpysort.a reference"
+end
+
 project.save
 puts "Synchronized #{synced.length} Extensions framework group(s):"
 puts synced.map { |line| "- #{line}" }
