@@ -60,11 +60,8 @@ jobs:
           export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
           bash Extensions/Dependencies/tools/build-lxml.sh 2>&1 | tee build-local/xml-build.log
       - name: Start Docker for the historical iOS Fortran compiler
-        uses: douglascamata/setup-docker-macos-action@d5ccc6aae0ce23e7700154f5e63cc53e6433ac48 # v1.1.0
-        with:
-          lima: v1.2.1
-          colima: v0.9.1
-          colima-additional-options: --cpu 2 --memory 4 --mount /Users:w --mount /var/folders:w
+        shell: bash
+        run: bash .github/setup-docker-fortran.sh 2>&1 | tee build-local/docker-setup.log
       - name: Verify Docker and shared source access before compiling
         shell: bash
         run: |
