@@ -32,10 +32,10 @@ for arg in sys_args:
     if os.path.isfile(arg) and not arg.endswith(".o"):
         all_args_are_object_files = False
 
-if (not "-c" and not all_args_are_object_files) in sys_args or not "-arch arm64" in " ".join(sys_args):
-    print("The executed Fortran compiler only supports producing object files for iOS arm64, falling back to gfortran.", file=sys.stderr)
-    print("To compile sources for iOS arm64, make sure to add -arch arm64 and -c.", file=sys.stderr)
-    sys.exit(subprocess.run(["/usr/local/bin/gfortran"] + sys_args).returncode)
+if ("-c" not in sys_args and not all_args_are_object_files) or not ("-arch" in sys_args and "arm64" in sys_args):
+    print("fortran-ios only supports iOS arm64 object compilation; refusing host fallback.", file=sys.stderr)
+    print("To compile sources, pass -arch arm64 and -c.", file=sys.stderr)
+    sys.exit(2)
 
 if "-bundle" in sys_args or all_args_are_object_files:
     args = ["clang", "-undefined", "dynamic_lookup", "-shared"]
@@ -90,6 +90,11 @@ for arg in sys_args:
     if arg == "-fallow-argument-mismatch":
         continue
 
+    # Classic Flang bundled by fortran-ios v2.3 uses the PGI spelling.
+    # Passing gfortran's spelling through reaches clang and is rejected.
+    if arg == "-ffixed-form":
+        arg = "-Mfixed"
+
     if os.path.exists(arg):
         arg = convert_to_docker_path(arg)
     if arg.startswith("-I"):
@@ -124,7 +129,9 @@ except FileExistsError:
 os.chdir(inbox)
 
 flang = os.path.abspath(os.path.join(dir, "flang.sh"))
-flang_result = subprocess.run([flang, "--save-temps"] + arguments)
+# Only LLVM IR is needed; bundled macOS llc produces the iOS object.
+# --save-temps also invokes the container's host clang backend unnecessarily.
+flang_result = subprocess.run([flang, "-S", "-emit-llvm"] + arguments)
 file_path = None
 
 for file in os.listdir("."):
@@ -140,7 +147,11 @@ os.chdir(cwd)
 if flang_result.returncode != 0:
     shutil.rmtree(inbox)
     sys.exit(flang_result.returncode)
-llc = [os.path.join(dir, "llc"), "-mtriple=arm64-apple-ios", "-filetype=obj", file_path, "-o", output_path]
+if file_path is None:
+    shutil.rmtree(inbox)
+    print("fortran-ios: flang produced no LLVM IR (.ll) for llc", file=sys.stderr)
+    sys.exit(2)
+llc = [os.path.join(dir, "llc"), "-mtriple=arm64-apple-ios12.0.0", "-filetype=obj", file_path, "-o", output_path]
 llc_result = subprocess.run(llc, stdout=None, stderr=None)
 
 shutil.rmtree(inbox)

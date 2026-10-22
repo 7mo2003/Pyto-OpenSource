@@ -6,6 +6,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 source environment.sh
 
 python3 -m pip install 'pybind11==2.7.1' 'pythran==0.9.12'
+PYTHRAN_STR_HEADER="$(python3 -c 'import importlib.util, pathlib; print(pathlib.Path(importlib.util.find_spec("pythran").origin).parent / "pythonic/types/str.hpp")')"
+python3 patch-pythran-reverse-iterator.py "$PYTHRAN_STR_HEADER"
 # Run in a separate interpreter: SciPy requires Pythran to be unimported when
 # its setup.py patches distutils' base class for the Fortran-aware build.
 python3 check-scipy-build-ext.py
@@ -76,6 +78,29 @@ fi
 
 rm -f fortran-ios/bin/gfortran
 cp gfortran fortran-ios/bin
+
+# Fail before setup.py if Docker/flang output and the bundled llc disagree,
+# and prove that no host fallback produced the object.
+preflight_dir="$(mktemp -d "${TMPDIR:-/tmp}/pyto-fortran-preflight.XXXXXX")"
+cleanup_preflight() { rm -rf "$preflight_dir"; }
+trap 'cleanup_preflight; cleanup_scipy_links' EXIT
+cat > "$preflight_dir/preflight.f" <<'EOF'
+      subroutine pyto_preflight()
+      return
+      end
+EOF
+fortran-ios/bin/gfortran -arch arm64 -c "$preflight_dir/preflight.f" -o "$preflight_dir/preflight.o"
+[ -s "$preflight_dir/preflight.o" ] || { echo "Fortran preflight produced no object" >&2; exit 2; }
+file "$preflight_dir/preflight.o" | grep -E 'Mach-O.*(arm64|ARM64)' >/dev/null || {
+    echo "Fortran preflight is not an arm64 Mach-O object" >&2
+    file "$preflight_dir/preflight.o" >&2
+    exit 2
+}
+xcrun otool -l "$preflight_dir/preflight.o" | tee "$preflight_dir/load-commands.txt"
+grep -Eq 'LC_VERSION_MIN_IPHONEOS|platform[[:space:]]+2([[:space:]]|$)' "$preflight_dir/load-commands.txt" || {
+    echo "Fortran preflight object is not tagged for iOS" >&2
+    exit 2
+}
 
 cd ../scipy
 
