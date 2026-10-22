@@ -22,6 +22,18 @@ jobs:
       PIP_DISABLE_PIP_VERSION_CHECK: '1'
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Identify pinned submodule sources
+        id: submodule-key
+        shell: bash
+        run: echo "hash=$(git ls-files --stage | awk '$1 == 160000' | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - name: Restore public submodule source cache
+        id: submodule-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .git/modules
+          key: ${{ runner.os }}-pyto-submodules-${{ steps.submodule-key.outputs.hash }}
       - uses: actions/setup-python@v6
         with:
           python-version: '3.10'
@@ -35,6 +47,18 @@ jobs:
           python3.10 --version | tee -a build-local/toolchain.log
           command -v pod || brew install cocoapods
           pod --version | tee -a build-local/toolchain.log
+      - name: Start Docker for the historical iOS Fortran compiler
+        uses: douglascamata/setup-docker-macos-action@d5ccc6aae0ce23e7700154f5e63cc53e6433ac48 # v1.1.0
+        with:
+          lima: v1.2.1
+          colima: v0.9.1
+          colima-additional-options: --cpu 2 --memory 4 --mount /Users:w --mount /var/folders:w
+      - name: Verify Docker and shared source access before compiling
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker info | tee build-local/docker.log
+          docker run --rm -v "$GITHUB_WORKSPACE:/source:ro" alpine:3.22 test -f /source/setup.sh
       - name: Prepare original dependencies
         shell: bash
         run: bash build-ios.sh prepare
@@ -48,6 +72,13 @@ jobs:
           path: build-local/Pyto-source-build-unsigned.ipa
           if-no-files-found: error
           retention-days: 14
+      - name: Save public submodule sources for the next attempt
+        if: always() && steps.submodule-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: .git/modules
+          key: ${{ runner.os }}-pyto-submodules-${{ steps.submodule-key.outputs.hash }}
       - name: Preserve diagnostic logs even if the build fails
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,52 +1,105 @@
 #!/bin/bash
+set -euo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
+TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEPS_DIR="$(cd "${TOOLS_DIR}/.." && pwd)"
+LXML_DIR="${DEPS_DIR}/lxml"
+LIBXML2_DIR="${DEPS_DIR}/libxml2"
+LIBXSLT_DIR="${DEPS_DIR}/libxslt/libxslt-1.1.26"
+OUT_DIR="${DEPS_DIR}/../Lxml"
+# Keep all generated headers, archives and config scripts together.  In
+# particular, never let configure find /usr/local or a Homebrew xml2-config.
+PREFIX="${OUT_DIR}/.ios-prefix"
 
-brew install libxslt pkg-config autoconf automake libtool
-ln -s /usr/local/bin/glibtoolize /usr/local/bin/libtoolize
-
-cd ../libxslt
-
-mkdir -p ../../Lxml
-
-xcodebuild ARCHS=arm64 ONLY_ACTIVE_ARCH=NO -scheme libxslt -sdk iphoneos build SYMROOT=build
-mv build/Debug-iphoneos/liblibxslt.a build/Debug-iphoneos/libxslt.a
-rm -f ../../Lxml/libxslt.a
-cp build/Debug-iphoneos/libxslt.a ../../Lxml
-
-pushd ../tools
+cd "${TOOLS_DIR}"
+# environment.sh is intentionally sourced again immediately before setup.py
+# below.  The native dependency builds temporarily replace its compiler flags.
 source environment.sh
-popd
+SDKROOT="${SDK}"
+IOS_MIN="${IPHONEOS_DEPLOYMENT_TARGET}"
+export CC="${XCRUN} --sdk iphoneos clang -arch arm64 -mios-version-min=${IOS_MIN}"
+export CXX="${XCRUN} --sdk iphoneos clang++ -arch arm64 -mios-version-min=${IOS_MIN}"
+export AR="$(xcrun --sdk iphoneos -f ar)"
+export RANLIB="$(xcrun --sdk iphoneos -f ranlib)"
+export CPPFLAGS="-arch arm64 -isysroot ${SDKROOT} -I${PREFIX}/include"
+export CFLAGS="-arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_MIN} -fPIC"
+export LDFLAGS="-arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_MIN} -L${PREFIX}/lib"
+export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+export PATH="${PREFIX}/bin:${PATH}"
 
-export STATIC_DEPS=false
-export CPPFLAGS="-I/usr/local/opt/libxslt/include"
+command -v autoconf >/dev/null || { echo "autoconf is required to build pinned libxml2/libxslt" >&2; exit 1; }
+command -v automake >/dev/null || { echo "automake is required to build pinned libxml2/libxslt" >&2; exit 1; }
+rm -rf "${PREFIX}"
+mkdir -p "${PREFIX}"
 
-cd ../libxml2
-./autogen.sh --build=x86_64-apple-darwin --host=aarch64-apple-darwin13 --disable-dependency-tracking
-make
-rm -f ../../Lxml/libxml2.a
-cp .libs/libxml2.a ../../Lxml
+# Build and install the pinned libxml2 first.  Its staged xml2-config is the
+# only config script visible to the later libxslt and lxml builds.
+cd "${LIBXML2_DIR}"
+if [[ -x ./autogen.sh ]]; then
+  ./autogen.sh --build=x86_64-apple-darwin --host=arm-apple-darwin \
+    --prefix="${PREFIX}" --disable-dependency-tracking --disable-shared \
+    --enable-static --without-python --without-lzma --without-iconv
+else
+  ./configure --build=x86_64-apple-darwin --host=arm-apple-darwin \
+    --prefix="${PREFIX}" --disable-dependency-tracking --disable-shared \
+    --enable-static --without-python --without-lzma --without-iconv
+fi
+make -j2
+make install
 
-OLD_PWD="$(pwd)"
-cd ../../Lxml/
-mkdir dependencies
-mv *.a dependencies
-cd dependencies
-ar x libxml2.a
-ar x libxslt.a
-cd ../
+# libxslt 1.1.26 is built with its own autoconf files, not the unrelated
+# Xcode wrapper project.  This guarantees that it consumes the staged
+# libxml2 headers and archive rather than host XML libraries.
+cd "${LIBXSLT_DIR}"
+"${TOOLS_DIR}/patch-libxslt-libxml2.sh" libxslt/functions.c
+if [[ ! -x ./configure ]]; then
+  autoreconf -fi
+fi
+XML2_CONFIG="${PREFIX}/bin/xml2-config" ./configure \
+  --build=x86_64-apple-darwin --host=arm-apple-darwin \
+  --prefix="${PREFIX}" --disable-dependency-tracking --disable-shared \
+  --enable-static --without-python --without-crypto \
+  --with-libxml-prefix="${PREFIX}" --with-libxml-include-prefix="${PREFIX}/include" \
+  --with-libxml-libs-prefix="${PREFIX}/lib"
+make -j2
+make install
 
-xcrun -sdk iphoneos clang -shared -fpic dependencies/*.o -arch arm64 -undefined dynamic_lookup -o dependencies/lxml
-rm -rf "dependencies/__.SYMDEF SORTED"
-rm -rf dependencies/*.o
-mkdir dependencies/lxml.framework
-mv dependencies/lxml dependencies/lxml.framework
-cp ../Dependencies/tools/lxml-Info.plist dependencies/lxml.framework/Info.plist
+# Fail closed if either config script points outside our staging prefix.
+for config in "${PREFIX}/bin/xml2-config" "${PREFIX}/bin/xslt-config"; do
+  [[ -x "${config}" ]] || { echo "missing staged config script: ${config}" >&2; exit 1; }
+  case "$("${config}" --cflags) $("${config}" --libs)" in
+    *"/usr/local"*|*"/opt/homebrew"*|*"/home/linuxbrew"*)
+      echo "host path leaked into ${config}" >&2; exit 1;;
+  esac
+done
+
+rm -rf "${OUT_DIR}"/dependencies "${OUT_DIR}"/*.a
+mkdir -p "${OUT_DIR}/dependencies"
+cp "${PREFIX}/lib/libxml2.a" "${OUT_DIR}/libxml2.a"
+cp "${PREFIX}/lib/libxslt.a" "${OUT_DIR}/libxslt.a"
+cd "${OUT_DIR}/dependencies"
+ar x ../libxml2.a
+ar x ../libxslt.a
+cd "${OUT_DIR}"
+"${XCRUN}" -sdk iphoneos clang -shared -fPIC dependencies/*.o \
+  -arch arm64 -isysroot "${SDKROOT}" -undefined dynamic_lookup -o dependencies/lxml
+rm -f dependencies/__.SYMDEF\ SORTED dependencies/*.o
+rm -rf lxml.framework
+mkdir lxml.framework
+mv dependencies/lxml lxml.framework/lxml
+cp "${TOOLS_DIR}/lxml-Info.plist" lxml.framework/Info.plist
 rm -rf dependencies/lxml-deps.framework
-mv dependencies/lxml.framework dependencies/lxml-deps.framework
-cd $OLD_PWD
+mv lxml.framework dependencies/lxml-deps.framework
 
-cd ../lxml
+# Restore the complete cross-platform/Pyto Python environment after the native
+# builds; otherwise setup.py silently uses the host interpreter and flags.
+cd "${TOOLS_DIR}"
+source environment.sh
+cd "${LXML_DIR}"
+XML2_CONFIG="${PREFIX}/bin/xml2-config" \
+XSLT_CONFIG="${PREFIX}/bin/xslt-config" \
+PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig" \
+PATH="${PREFIX}/bin:${PATH}" \
 python3 setup.py bdist
-python3 ../tools/make_frameworks.py lxml Lxml
-../tools/copy-scripts.sh build/lib*/* ../../../site-packages/lxml
+python3 "${TOOLS_DIR}/make_frameworks.py" lxml Lxml
+"${TOOLS_DIR}/copy-scripts.sh" build/lib*/* "${DEPS_DIR}/../../site-packages/lxml"

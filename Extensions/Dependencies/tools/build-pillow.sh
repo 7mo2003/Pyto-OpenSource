@@ -1,6 +1,8 @@
 #!/bin/bash
+set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
+FREETYPE_LIBDIR="$(bash ensure-ios-freetype.sh)"
 
 pushd ../../../
 
@@ -14,16 +16,13 @@ pushd build_pillow/*
 mv libjpeg.framework/libjpeg ../../libjpeg.dylib
 mv libpng.framework/libpng ../../libpng.dylib
 
-echo "int a() { return 0; }" > a.c
-clang -arch x86_64 -shared a.c -o ../../libfreetype.dylib
-rm a.c
-
 popd
 
 source environment.sh
 
-export CFLAGS="$CFLAGS -I/usr/local/opt/zlib/include -I../../../libjpeg -I../../../libpng -I../../../Pods/freetype2/freetype/Classes"
-export LDFLAGS="$LDFLAGS -L/usr/local/opt/zlib/lib -L../tools"
+SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+export CFLAGS="$CFLAGS -arch arm64 -isysroot $SDKROOT -I../../../libjpeg -I../../../libpng -I../../../freetype2-ios/include -I../../../Pods/freetype2/freetype/Classes"
+export LDFLAGS="$LDFLAGS -arch arm64 -isysroot $SDKROOT -L$FREETYPE_LIBDIR -L../tools"
 
 cd ../pillow
 python3 setup.py build_ext --disable-tiff --disable-jpeg200 --disable-lcms --disable-imagequant --disable-xcb --disable-platform-guessing --enable-jpeg --enable-zlib --enable-freetype
@@ -39,4 +38,3 @@ cd ../tools
 rm -rf build_pillow
 rm -f libjpeg.dylib
 rm -f libpng.dylib
-rm -f libfreetype.dylib

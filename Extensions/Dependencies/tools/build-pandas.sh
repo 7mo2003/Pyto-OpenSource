@@ -1,8 +1,10 @@
 #!/bin/bash
+set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 source environment.sh
+export CFLAGS="$CFLAGS -Wno-error=unused-but-set-variable"
 
 cd ../pandas
 python3 setup.py bdist

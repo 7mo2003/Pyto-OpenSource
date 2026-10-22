@@ -1,6 +1,7 @@
 import sys
 import os
 import shutil
+import subprocess
 
 # First argument: the name of the submodule, e.g: numpy
 # Second argument: the name of the directory containing the frameworks, e.g: Numpy
@@ -56,6 +57,16 @@ for dir in os.listdir("."):
         break
 
 extensions = list_extensions(".")
+
+if not extensions:
+    raise SystemExit("No native extensions were built for " + sys.argv[1])
+for extension in extensions:
+    result = subprocess.run(
+        ["xcrun", "lipo", "-archs", extension],
+        check=True, capture_output=True, text=True,
+    )
+    if "arm64" not in result.stdout.split():
+        raise SystemExit("Not an arm64 iOS extension: " + extension)
 
 frameworks_path = "../../../../"+sys.argv[2]
 

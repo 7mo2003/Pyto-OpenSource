@@ -2,23 +2,17 @@
 
 import sys
 import os
-import shlex
 import subprocess
 import string
 import random
 import shutil
-
-def join_args(args):
-    return ' '.join(shlex.quote(x) for x in args)
-
 
 if "-dumpversion" in sys.argv:
     print("10.2.0")
     sys.exit(0)
 
 arguments = []
-sys_args = sys.argv
-del sys_args[0]
+sys_args = sys.argv[1:]
 
 try:
     for arg in os.environ["ARCHFLAGS"].split(" "):
@@ -41,7 +35,7 @@ for arg in sys_args:
 if (not "-c" and not all_args_are_object_files) in sys_args or not "-arch arm64" in " ".join(sys_args):
     print("The executed Fortran compiler only supports producing object files for iOS arm64, falling back to gfortran.", file=sys.stderr)
     print("To compile sources for iOS arm64, make sure to add -arch arm64 and -c.", file=sys.stderr)
-    sys.exit(os.system(shlex.join(["/usr/local/bin/gfortran"]+sys_args)))
+    sys.exit(subprocess.run(["/usr/local/bin/gfortran"] + sys_args).returncode)
 
 if "-bundle" in sys_args or all_args_are_object_files:
     args = ["clang", "-undefined", "dynamic_lookup", "-shared"]
@@ -54,8 +48,7 @@ if "-bundle" in sys_args or all_args_are_object_files:
         if arg != "-bundle":
             args.append(arg)
     
-    command = shlex.join(args)
-    sys.exit(os.system(command))
+    sys.exit(subprocess.run(args).returncode)
 
 def convert_to_docker_path(arg):
     if arg.startswith("/"):
@@ -121,10 +114,6 @@ print(output_path)
 dir = os.path.dirname(os.path.abspath(__file__))
 cwd = os.getcwd()
 
-arguments.insert(0, os.path.abspath(os.path.join(dir, "flang.sh")))
-arguments.insert(1, "--save-temps")
-flang_command = join_args(arguments)
-
 inbox = os.path.join(cwd, ".inbox"+''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5)))
 
 try:
@@ -134,7 +123,8 @@ except FileExistsError:
 
 os.chdir(inbox)
 
-os.system(flang_command)
+flang = os.path.abspath(os.path.join(dir, "flang.sh"))
+flang_result = subprocess.run([flang, "--save-temps"] + arguments)
 file_path = None
 
 for file in os.listdir("."):
@@ -147,7 +137,11 @@ for file in os.listdir("."):
         file_path = os.path.join(os.getcwd(), file)
 
 os.chdir(cwd)
+if flang_result.returncode != 0:
+    shutil.rmtree(inbox)
+    sys.exit(flang_result.returncode)
 llc = [os.path.join(dir, "llc"), "-mtriple=arm64-apple-ios", "-filetype=obj", file_path, "-o", output_path]
-subprocess.run(llc, stdout=None, stderr=None)
+llc_result = subprocess.run(llc, stdout=None, stderr=None)
 
 shutil.rmtree(inbox)
+sys.exit(llc_result.returncode)
