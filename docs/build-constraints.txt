@@ -1,0 +1,4 @@
+# Documentation-only host tooling; native compilation uses the root constraints.
+-c ../build-constraints.txt
+# Alabaster 1.x requires Sphinx >=6.2, unlike the bundled Sphinx 4/5 stack.
+alabaster==0.7.16

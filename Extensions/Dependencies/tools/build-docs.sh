@@ -3,7 +3,7 @@
 cd "$(dirname "${BASH_SOURCE[0]}")"
 cd ../
 
-python3 -m pip install 'sphinx<6' 'sphinx-rtd-theme<2' 'sphinxcontrib-applehelp==1.0.4' 'sphinxcontrib-devhelp==1.0.2' 'sphinxcontrib-htmlhelp==2.0.1' 'sphinxcontrib-qthelp==1.0.3' 'sphinxcontrib-serializinghtml==1.1.5' python-docs-theme sphinx_copybutton sphinx_issues sphinx_removed_in sphinxext-opengraph sphinx-tabs sphinx-gallery sphinx-prompt sphinx-material sphinx-panels sphinxcontrib-svg2pdfconverter sphinxcontrib-log-cabinet nbsphinx pydata-sphinx-theme crate sphinx-csv-filter pallets-sphinx-themes colorspacious cppy numpydoc matplotlib pandas seaborn tornado gevent nbconvert pandoc gitpython jupyter plotly myst-parser pooch dask travertino mock furo pyOpenSSL pysocks colorama astropy-sphinx-theme 'setuptools<81' > /dev/null
+python3 -m pip install 'sphinx<6' 'sphinx-rtd-theme<2' 'alabaster==0.7.16' 'sphinxcontrib-applehelp==1.0.4' 'sphinxcontrib-devhelp==1.0.2' 'sphinxcontrib-htmlhelp==2.0.1' 'sphinxcontrib-qthelp==1.0.3' 'sphinxcontrib-serializinghtml==1.1.5' python-docs-theme sphinx_copybutton sphinx_issues sphinx_removed_in sphinxext-opengraph sphinx-tabs sphinx-gallery sphinx-prompt sphinx-material sphinx-panels sphinxcontrib-svg2pdfconverter sphinxcontrib-log-cabinet nbsphinx pydata-sphinx-theme crate sphinx-csv-filter pallets-sphinx-themes colorspacious cppy numpydoc matplotlib pandas seaborn tornado gevent nbconvert pandoc gitpython jupyter plotly myst-parser pooch dask travertino mock furo pyOpenSSL pysocks colorama astropy-sphinx-theme 'setuptools<81' > /dev/null
 
 function pillow {
     pushd Pillow/docs

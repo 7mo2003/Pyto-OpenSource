@@ -13,7 +13,7 @@ def main():
             except FileNotFoundError:
                 pass
             
-            subprocess.Popen(["zip", "-r", dir+".zip"]+glob.glob(dir+"/*"))
+            subprocess.run(["zip", "-r", dir+".zip"]+glob.glob(dir+"/*"))
 
 if __name__ == "__main__":
     main()
