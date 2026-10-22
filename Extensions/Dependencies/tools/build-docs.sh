@@ -3,11 +3,11 @@
 cd "$(dirname "${BASH_SOURCE[0]}")"
 cd ../
 
-python3 -m pip install 'sphinx<6' 'sphinx-rtd-theme<2' python-docs-theme sphinx_copybutton sphinx_issues sphinx_removed_in sphinxext-opengraph sphinx-tabs sphinx-gallery sphinx-prompt sphinx-material sphinx-panels sphinxcontrib-svg2pdfconverter sphinxcontrib-log-cabinet nbsphinx pydata-sphinx-theme crate sphinx-csv-filter pallets-sphinx-themes colorspacious cppy numpydoc matplotlib pandas seaborn tornado gevent nbconvert pandoc gitpython jupyter plotly myst-parser pooch dask travertino mock furo pyOpenSSL pysocks > /dev/null
+python3 -m pip install 'sphinx<6' 'sphinx-rtd-theme<2' 'sphinxcontrib-applehelp==1.0.4' 'sphinxcontrib-devhelp==1.0.2' 'sphinxcontrib-htmlhelp==2.0.1' 'sphinxcontrib-qthelp==1.0.3' 'sphinxcontrib-serializinghtml==1.1.5' python-docs-theme sphinx_copybutton sphinx_issues sphinx_removed_in sphinxext-opengraph sphinx-tabs sphinx-gallery sphinx-prompt sphinx-material sphinx-panels sphinxcontrib-svg2pdfconverter sphinxcontrib-log-cabinet nbsphinx pydata-sphinx-theme crate sphinx-csv-filter pallets-sphinx-themes colorspacious cppy numpydoc matplotlib pandas seaborn tornado gevent nbconvert pandoc gitpython jupyter plotly myst-parser pooch dask travertino mock furo pyOpenSSL pysocks colorama astropy-sphinx-theme 'setuptools<81' > /dev/null
 
 function pillow {
     pushd Pillow/docs
-    python3 -m pip install Pillow > /dev/null
+    python3 -m pip install Pillow==9.0.0 > /dev/null
     make html
     rm -rf ../../../../documentations/pillow
     cp -r _build/html ../../../../documentations/pillow
@@ -43,8 +43,8 @@ function nacl {
 
 function pywt {
     pushd pywt/doc
-    python3 -m pip install PyWavelets > /dev/null
-    make html
+    python3 -m pip install 'PyWavelets<1.3' > /dev/null
+    make html SPHINXBUILD="python3 -c 'import scipy.fft; from sphinx.cmd.build import main; main()'"
     rm -rf ../../../../documentations/pywt
     cp -r build/html ../../../../documentations/pywt
     popd
@@ -52,7 +52,7 @@ function pywt {
 
 function sklearn {
     pushd sklearn/doc
-    python3 -m pip install scikit-learn==1.1.3 > /dev/null
+    python3 -m pip install .. > /dev/null
     make html
     rm -rf ../../../../documentations/sklearn
     cp -r _build/html/stable ../../../../documentations/sklearn
@@ -63,7 +63,7 @@ function astropy {
     python3 -m pip install astropy sphinx-astropy > /dev/null
     ASTROPY_PATH="$(python3 -c 'import astropy; import os.path; print(os.path.dirname(astropy.__file__))')"
     pushd astropy
-    python3 setup.py build
+    CFLAGS="${CFLAGS:-} -Wno-incompatible-function-pointer-types" python3 setup.py build
     rm -rf "$ASTROPY_PATH"
     cp -r build/lib.macosx*/astropy "$ASTROPY_PATH"
     pushd doc
@@ -116,7 +116,7 @@ function erfa {
 
 function pandas {
     pushd pandas/doc
-    python3 -m pip install pandas==1.1.4 > /dev/null
+    python3 -m pip install --no-build-isolation pandas==1.1.4 > /dev/null
     python3 make.py --python-path ""
     rm -rf ../../../../documentations/pandas
     cp -r build/html ../../../../documentations/pandas
@@ -153,6 +153,7 @@ function matplotlib {
     cp -r build/html ../../../../documentations/matplotlib
     popd
     popd
+    unset PYTHONPATH
 }
 
 function skimage {
@@ -166,6 +167,7 @@ function skimage {
     cp -r build/html ../../../../documentations/skimage
     popd
     popd
+    unset PYTHONPATH
 }
 
 

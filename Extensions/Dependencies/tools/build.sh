@@ -39,4 +39,6 @@ for f in build-*.sh; do
 done
 
 # Build bundled third-party documentation once, after all native modules.
-bash build-docs.sh
+if [[ "${PYTO_SKIP_DOCS:-0}" != 1 ]]; then
+    bash build-docs.sh
+fi

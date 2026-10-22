@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     runs-on: macos-15-intel
-    timeout-minutes: 180
+    timeout-minutes: 360
     env:
       HOMEBREW_NO_AUTO_UPDATE: '1'
       PIP_DISABLE_PIP_VERSION_CHECK: '1'
@@ -52,7 +52,22 @@ jobs:
           PYTO_PREPARE_BASE_ONLY: '1'
         shell: bash
         run: bash build-ios.sh prepare
+      - name: Identify native cache toolchain
+        id: native-key
+        shell: bash
+        run: echo "xcode=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - name: Restore compiled iOS dependencies
+        id: native-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            Extensions/*
+            !Extensions/Dependencies
+            !Extensions/Dependencies/**
+            site-packages
+          key: ${{ runner.os }}-intel-ios-native-v1-${{ steps.native-key.outputs.xcode }}-${{ steps.submodule-key.outputs.hash }}-${{ hashFiles('Extensions/Dependencies/tools/**', '!Extensions/Dependencies/tools/build-docs.sh', 'setup.sh', 'build-constraints.txt') }}
       - name: Validate host SciPy tooling and its OpenMP runtime
+        if: steps.native-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -71,6 +86,7 @@ jobs:
           python3 -m pip install 'pybind11==2.7.1' 'pythran==0.9.12'
           python3 Extensions/Dependencies/tools/check-scipy-build-ext.py
       - name: Build and validate native XML before starting the Fortran VM
+        if: steps.native-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -78,6 +94,7 @@ jobs:
           export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
           bash Extensions/Dependencies/tools/build-lxml.sh 2>&1 | tee build-local/xml-build.log
       - name: Build and validate native YAML before starting the Fortran VM
+        if: steps.native-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -85,15 +102,18 @@ jobs:
           export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
           bash Extensions/Dependencies/tools/build-pyyaml.sh 2>&1 | tee build-local/yaml-build.log
       - name: Start Docker for the historical iOS Fortran compiler
+        if: steps.native-cache.outputs.cache-hit != 'true'
         shell: bash
         run: bash .github/setup-docker-fortran.sh 2>&1 | tee build-local/docker-setup.log
       - name: Verify Docker and shared source access before compiling
+        if: steps.native-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
           docker info | tee build-local/docker.log
           docker run --rm -v "$GITHUB_WORKSPACE:/source:ro" alpine:3.22 test -f /source/setup.sh
-      - name: Build remaining native dependencies and documentation
+      - name: Build remaining native dependencies
+        if: steps.native-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -101,9 +121,30 @@ jobs:
           export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
           export PYTO_XML_READY=1
           export PYTO_YAML_READY=1
+          export PYTO_SKIP_DOCS=1
           bash Extensions/Dependencies/tools/build.sh 2>&1 | tee build-local/native-build.log
           bash Extensions/Dependencies/tools/copy-eggs.sh
           find site-packages -name '*.so' -delete
+      - name: Validate native device frameworks
+        shell: bash
+        run: python3 .github/validate-native.py | tee build-local/native-validation.log
+      - name: Save compiled iOS dependencies before documentation and Xcode
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            Extensions/*
+            !Extensions/Dependencies
+            !Extensions/Dependencies/**
+            site-packages
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+      - name: Build bundled documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .venv-build/bin/activate
+          export PIP_CONSTRAINT="$GITHUB_WORKSPACE/build-constraints.txt"
+          bash Extensions/Dependencies/tools/build-docs.sh 2>&1 | tee build-local/third-party-docs.log
           make -C docs html 2>&1 | tee build-local/docs-build.log
       - name: Build full-feature open-source edition and package unsigned IPA
         shell: bash

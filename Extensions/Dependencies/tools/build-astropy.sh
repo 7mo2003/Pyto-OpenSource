@@ -1,10 +1,12 @@
 #!/bin/bash
+set -e
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 CURDIR="$PWD"
 
 source environment.sh
+export CFLAGS="$CFLAGS -Wno-error=incompatible-function-pointer-types"
 
 python3 -m pip install extension_helpers
 python3 -m pip install jinja2
