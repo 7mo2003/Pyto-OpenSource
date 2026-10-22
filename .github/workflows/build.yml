@@ -43,7 +43,9 @@ jobs:
           set -euo pipefail
           mkdir -p build-local
           xcodebuild -version | tee build-local/toolchain.log
+          xcodebuild -showsdks | tee -a build-local/toolchain.log
           xcrun --sdk iphoneos --show-sdk-path | tee -a build-local/toolchain.log
+          xcrun --sdk watchos --show-sdk-path | tee -a build-local/toolchain.log
           python3.10 --version | tee -a build-local/toolchain.log
           command -v pod || brew install cocoapods
           pod --version | tee -a build-local/toolchain.log

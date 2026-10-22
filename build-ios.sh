@@ -38,17 +38,23 @@ fi
 OUT="$ROOT/build-local"
 mkdir -p "$OUT"
 xcodebuild -workspace Pyto.xcworkspace -scheme Pyto -configuration Release \
-    -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$OUT/DerivedData" \
+    -destination 'generic/platform=iOS' -derivedDataPath "$OUT/DerivedData" \
     SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) PYTO_OPEN_SOURCE' \
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= build \
     2>&1 | tee "$OUT/xcodebuild.log"
 APP="$OUT/DerivedData/Build/Products/Release-iphoneos/Pyto.app"
 [[ -f "$APP/Info.plist" ]] || { echo "Pyto.app was not produced." >&2; exit 1; }
+EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+[[ -s "$APP/$EXECUTABLE" ]] || { echo "App executable is absent." >&2; exit 1; }
+xcrun lipo -archs "$APP/$EXECUTABLE" | grep -w arm64 >/dev/null
+xcrun otool -l "$APP/$EXECUTABLE" | grep -E 'LC_VERSION_MIN_IPHONEOS|platform[[:space:]]+(2|IOS)([[:space:]]|$)' >/dev/null
 STAGE="$(mktemp -d "$OUT/package.XXXXXX")"
 trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/Payload"
 ditto "$APP" "$STAGE/Payload/Pyto.app"
 (cd "$STAGE" && /usr/bin/zip -q -r -y "$OUT/Pyto-source-build-unsigned.ipa" Payload)
+/usr/bin/unzip -tq "$OUT/Pyto-source-build-unsigned.ipa"
+shasum -a 256 "$OUT/Pyto-source-build-unsigned.ipa" | tee "$OUT/ipa-sha256.txt"
 echo "Created: $OUT/Pyto-source-build-unsigned.ipa"
 echo "Unsigned: this is not installable on a normal iPhone until properly signed and provisioned."
 echo "A successful build alone does not establish runtime equivalence with the supplied IPA."
