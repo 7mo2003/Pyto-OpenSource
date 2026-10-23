@@ -27,6 +27,10 @@ SITES = {
                    '20a97140354021c1cad4fd664ead6d8f21aefa0a', '3.3.3'),
     'skimage': ('https://github.com/scikit-image/docs.git',
                 '7c08157c13906338ce650ce96b4a1854c6377c2c', '0.18.x'),
+    # The official site retains 0.13.5 for the 0.13 documentation series.
+    # This is documentation only; the iOS runtime remains pinned to 0.13.1.
+    'statsmodels': ('https://github.com/statsmodels/statsmodels.github.io.git',
+                   '47098dfdebda9d34c8233d20edd84dc533f726a2', 'v0.13.5'),
 }
 
 

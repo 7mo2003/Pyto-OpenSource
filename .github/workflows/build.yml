@@ -194,15 +194,47 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: documentations/*.zip
-          key: ${{ runner.os }}-pyto-complete-docs-v1-${{ steps.submodule-key.outputs.hash }}-${{ hashFiles('.github/complete-documentation.py', '.github/build-source-docs.sh', 'docs/build-constraints.txt') }}
+          key: ${{ runner.os }}-pyto-complete-docs-v1-${{ steps.submodule-key.outputs.hash }}-${{ hashFiles('.github/complete-documentation.py', '.github/build-source-docs.sh', '.github/build-data-docs.sh', 'docs/build-constraints.txt') }}
       - name: Restore official published HTML documentation
         if: steps.complete-documentation-cache.outputs.cache-hit != 'true'
         shell: bash
         run: python3.10 .github/complete-documentation.py | tee build-local/official-documentation.log
-      - name: Build missing documentation from pinned sources
+      - name: Restore completed source documentation archives
         if: steps.complete-documentation-cache.outputs.cache-hit != 'true'
+        id: source-documentation-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            documentations/astropy.zip
+            documentations/erfa.zip
+            documentations/scipy.zip
+          key: ${{ runner.os }}-pyto-source-docs-v1-${{ steps.submodule-key.outputs.hash }}-${{ hashFiles('.github/build-source-docs.sh', 'docs/build-constraints.txt', 'build-constraints.txt') }}
+      - name: Build missing documentation from pinned sources
+        if: steps.complete-documentation-cache.outputs.cache-hit != 'true' && steps.source-documentation-cache.outputs.cache-hit != 'true'
         shell: bash
         run: bash .github/build-source-docs.sh 2>&1 | tee build-local/source-documentation.log
+      - name: Save completed source documentation archives
+        if: steps.complete-documentation-cache.outputs.cache-hit != 'true' && steps.source-documentation-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            documentations/astropy.zip
+            documentations/erfa.zip
+            documentations/scipy.zip
+          key: ${{ steps.source-documentation-cache.outputs.cache-primary-key }}
+      - name: Install historical host Python for data documentation only
+        if: steps.complete-documentation-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.9'
+      - name: Install notebook documentation renderer
+        if: steps.complete-documentation-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: command -v pandoc || brew install pandoc
+      - name: Build pandas documentation from its pinned source
+        if: steps.complete-documentation-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: bash .github/build-data-docs.sh 2>&1 | tee build-local/pandas-documentation.log
       - name: Build application documentation
         shell: bash
         run: |
