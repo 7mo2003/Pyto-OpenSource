@@ -12,9 +12,16 @@ PROJECT_PATH = REPO_ROOT.join("Pyto.xcodeproj")
 EXTENSIONS_ROOT = REPO_ROOT.join("Extensions").realpath
 
 project = Xcodeproj::Project.open(PROJECT_PATH.to_s)
-generated_groups = Dir.glob(REPO_ROOT.join("Extensions/Dependencies/tools/build-*.sh").to_s).flat_map do |script|
-  File.read(script).scan(/make_frameworks\.py["']?\s+\S+\s+(\w+)/).flatten
-end.to_set
+generated_groups = Set.new
+preserved_frameworks = Hash.new { |hash, group| hash[group] = Set.new }
+Dir.glob(REPO_ROOT.join("Extensions/Dependencies/tools/build-*.sh").to_s).each do |script|
+  File.read(script).scan(/make_frameworks\.py["']?\s+\S+\s+(\w+)([^\n]*)/).each do |group, extra|
+    generated_groups.add(group)
+    extra.split.select { |name| name.match?(/\A[\w-]+\z/) }.each do |name|
+      preserved_frameworks[group].add("#{name}.framework")
+    end
+  end
+end
 abort "Cannot discover generated framework groups" if generated_groups.length < 20
 
 # Return the on-disk framework directory for a PBXGroup only when it is exactly
@@ -87,6 +94,9 @@ project.objects.grep(Xcodeproj::Project::Object::PBXGroup).each do |group|
   # gets its own settings, so link/embed/code-sign attributes are preserved.
   phase_templates = Hash.new { |hash, phase| hash[phase] = [] }
   framework_refs.each do |file_ref|
+    # Preserved SciPy runtime/dependency dylibs are linkable frameworks, not
+    # templates for the dynamically loaded Python extension bundles.
+    next if preserved_frameworks[directory.basename.to_s].include?(framework_name(file_ref))
     phase_for_file_ref(project, file_ref).each do |phase, build_file|
       phase_templates[phase] << deep_copy(build_file.settings)
     end
@@ -109,7 +119,10 @@ project.objects.grep(Xcodeproj::Project::Object::PBXGroup).each do |group|
 
   expected_paths.each do |path|
     name = path.basename.to_s
-    file_ref = existing[name] || group.new_file(name)
+    # Existing references already have the intended per-target link/embed
+    # membership. Only genuinely new products need a phase template.
+    next if existing.key?(name)
+    file_ref = group.new_file(name)
     existing[name] = file_ref
 
     phase_templates.each do |phase, settings_list|
