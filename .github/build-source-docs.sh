@@ -83,6 +83,9 @@ build_astropy() {
   local built
   built="$(find "$src" -type d -path '*/build/lib.macosx*/astropy' -print -quit)"
   [[ -n "$built" ]] || fail "Astropy setup.py produced no host build/lib.macosx*/astropy"
+  # conf.py uses pkg_resources.get_distribution('Astropy'), which needs real
+  # distribution metadata as well as the compiled package on PYTHONPATH.
+  (cd "$src" && "$PY" setup.py egg_info --egg-base "$(dirname "$built")") || fail "Astropy distribution metadata generation failed"
   local source_docs="$src/docs"
   [[ -d "$source_docs" ]] || source_docs="$src/doc"
   need_dir "$source_docs"
