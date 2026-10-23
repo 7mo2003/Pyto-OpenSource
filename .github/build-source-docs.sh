@@ -69,6 +69,7 @@ $PIP install \
   'pydata-sphinx-theme==0.8.1' 'sphinx-gallery==0.11.1' \
   'sphinx-automodapi==0.14.1' 'sphinxcontrib-bibtex==2.4.2' \
   'docutils==0.17.1' 'nbsphinx==0.8.12' 'IPython==8.12.3' \
+  'pytest==7.4.4' 'PyYAML==6.0.1' \
   "sphinx-astropy==$SPHINX_ASTROPY_VERSION" \
   "astropy-sphinx-theme==$ASTROPY_THEME_VERSION" \
   "extension-helpers==$EXTENSION_HELPERS_VERSION" >/dev/null
