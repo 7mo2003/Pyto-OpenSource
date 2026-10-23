@@ -189,6 +189,20 @@ jobs:
         with:
           path: documentations/*.zip
           key: ${{ steps.documentation-cache.outputs.cache-primary-key }}
+      - name: Restore verified complete documentation archives
+        id: complete-documentation-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: documentations/*.zip
+          key: ${{ runner.os }}-pyto-complete-docs-v1-${{ steps.submodule-key.outputs.hash }}-${{ hashFiles('.github/complete-documentation.py', '.github/build-source-docs.sh', 'docs/build-constraints.txt') }}
+      - name: Restore official published HTML documentation
+        if: steps.complete-documentation-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: python3.10 .github/complete-documentation.py | tee build-local/official-documentation.log
+      - name: Build missing documentation from pinned sources
+        if: steps.complete-documentation-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: bash .github/build-source-docs.sh 2>&1 | tee build-local/source-documentation.log
       - name: Build application documentation
         shell: bash
         run: |
@@ -196,6 +210,17 @@ jobs:
           source .venv-build/bin/activate
           export PIP_CONSTRAINT="$GITHUB_WORKSPACE/docs/build-constraints.txt"
           make -C docs html 2>&1 | tee build-local/docs-build.log
+          test -s documentations/pyto/index.html
+          (cd documentations && zip -q -r pyto.zip pyto)
+      - name: Validate every bundled HTML documentation archive before Xcode
+        shell: bash
+        run: python3.10 .github/complete-documentation.py --validate | tee build-local/documentation-validation.log
+      - name: Save verified complete documentation archives
+        if: steps.complete-documentation-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: documentations/*.zip
+          key: ${{ steps.complete-documentation-cache.outputs.cache-primary-key }}
       - name: Build full-feature open-source edition and package unsigned IPA
         shell: bash
         run: bash build-ios.sh build
