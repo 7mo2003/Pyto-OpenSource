@@ -17,9 +17,9 @@ PY="$VENV/bin/python"
 unset PIP_CONSTRAINT PYTHONPATH || true
 export PATH="$VENV/bin:$PATH"
 export MPLBACKEND=Agg
-"$PY" -m pip install 'pip<24' 'setuptools<60' wheel >/dev/null
+"$PY" -m pip install 'pip<24' 'setuptools<60' 'wheel==0.41.3' >/dev/null
 "$PY" -m pip install \
-  'setuptools<60' 'packaging==23.2' 'Pillow==9.5.0' 'pyparsing==2.4.7' \
+  'setuptools<60' 'wheel==0.41.3' 'packaging==23.2' 'Pillow==9.5.0' 'pyparsing==2.4.7' \
   'matplotlib-inline==0.1.6' 'traitlets==5.9.0' 'jupyter-core==5.3.2' \
   'pandas==1.1.4' 'numpy==1.19.5' 'scipy==1.7.3' 'matplotlib==3.3.4' \
   'Sphinx==3.1.1' 'numpydoc==1.1.0' 'pydata-sphinx-theme==0.4.3' \
