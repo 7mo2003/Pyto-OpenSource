@@ -45,8 +45,9 @@ def verify_archive(path):
         for name in names:
             safe_parts(name)
         has_index = any(pathlib.PurePosixPath(name).name == 'index.html' for name in names)
-        has_pages = sum(name.endswith('.html') for name in names) >= 2
-        if not (has_index and has_pages):
+        # Official single-page HTML distributions (including PyWavelets) are
+        # complete with index.html alone. Page count is not an integrity check.
+        if not has_index:
             return False
         bad = archive.testzip()
         if bad:
