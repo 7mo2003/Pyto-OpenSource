@@ -65,7 +65,7 @@ $PIP install \
   "numpy==$NUMPY_VERSION" "matplotlib==$MATPLOTLIB_VERSION" \
   "scipy==$SCIPY_VERSION" "pyerfa==$ERFA_VERSION" \
   'Cython==0.29.37' 'setuptools-scm<7' 'packaging<24' \
-  'Sphinx==5.3.0' 'numpydoc==1.5.0' 'sphinx-panels==0.6.0' \
+  'Sphinx==4.5.0' 'numpydoc==1.5.0' 'sphinx-panels==0.6.0' \
   'pydata-sphinx-theme==0.8.1' 'sphinx-gallery==0.11.1' \
   'sphinx-automodapi==0.14.1' 'sphinxcontrib-bibtex==2.4.2' \
   'docutils==0.17.1' 'nbsphinx==0.8.12' 'IPython==8.12.3' \
